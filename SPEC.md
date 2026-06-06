@@ -341,3 +341,18 @@ Show a "follows you back" badge next to usernames in similar vibers. Requires a 
 - **Timeline pagination only applies to the "everyone" feed.** The "following" filter is applied client-side over already-loaded entries, so it only covers the pages fetched so far.
 - **Share links encode vibe data client-side** — they are not validated against the DB when viewed. A share link for a private-later-made vibe will still show the original data.
 - **PWA is not offline-capable for data.** Static assets are cached; Supabase API calls are always network-only. The app requires connectivity to log or fetch vibes.
+- **`package-lock.json` is out of sync with `package.json`.** The committed lockfile is missing entries (e.g. several `esbuild` platform packages), so `npm ci` fails with `EUSAGE` ("can only install packages when your package.json and package-lock.json ... are in sync"). Use `npm install` instead, which reconciles the difference. For this reason the CI workflow (§10) runs `npm install`, not `npm ci`. The lockfile could be regenerated (`npm install` then commit the result) in a standalone cleanup if a reproducible `npm ci` is wanted.
+
+---
+
+## 10. Continuous Integration
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `master`:
+
+1. Checkout (`actions/checkout@v4`)
+2. Node 22 (`actions/setup-node@v4`)
+3. `npm install` — **not `npm ci`**, because the committed lockfile is out of sync (see §9)
+4. `npm run typecheck` (`tsc --noEmit`)
+5. `npm test` (`vitest run` — the full suite)
+
+A failing type check or test blocks the green check on the PR. This is separate from Vercel, which independently builds and deploys a preview on each push (the `Vercel` status check). No env vars are needed in CI: the only test that touches Supabase (`follows.test.ts`) mocks `../lib/supabase`, and the rest are pure logic or props-driven.
