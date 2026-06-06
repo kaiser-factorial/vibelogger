@@ -167,10 +167,14 @@ body {
   position: absolute;
   transform: translate(-50%, -50%);
   z-index: 10;
+  color: #fff;  /* glyphs use currentColor; white by default */
   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.55));
+  transition: color 0.45s ease, filter 0.45s ease;
   pointer-events: none;
 }
-.vibe-point--explore { pointer-events: auto; cursor: pointer; }
+/* Explore: point color is set inline to its zone color; a stronger shadow keeps
+   it legible against the dimmed, same-hue background it sits on. */
+.vibe-point--explore { pointer-events: auto; cursor: pointer; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.85)); }
 .vibe-point--explore:hover { z-index: 30; }
 .vibe-point--explore:hover svg { transform: scale(1.18); transition: transform 0.12s ease; }
 
@@ -182,6 +186,7 @@ body {
   width: 190px;
   background: rgba(10,10,10,0.96);
   border: 1px solid var(--border);
+  border-left: 3px solid currentColor;  /* zone-color accent (inherited from the point) */
   border-radius: 8px;
   padding: 9px 11px;
   box-shadow: 0 8px 28px rgba(0,0,0,0.6);
@@ -193,8 +198,8 @@ body {
 .vibe-tip--left { left: auto; right: calc(100% + 10px); }
 .vibe-point--explore:hover .vibe-tip { opacity: 1; visibility: visible; }
 .vibe-tip-head { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
-.vibe-tip-glyph { font-size: 13px; line-height: 1; }
-.vibe-tip-coord { font-size: 12px; font-weight: 700; color: var(--text); }
+.vibe-tip-glyph { font-size: 13px; line-height: 1; color: currentColor; }
+.vibe-tip-coord { font-size: 12px; font-weight: 700; color: currentColor; }
 .vibe-tip-note {
   font-size: 12px; color: var(--text); line-height: 1.45;
   margin-bottom: 5px; white-space: pre-wrap; word-break: break-word;

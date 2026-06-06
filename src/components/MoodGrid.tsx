@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import type { Vibe, PendingVibe } from '../types'
+import { gridColor, GRID_ZONE_COLOR } from '../lib/zones'
 
 interface Zone {
   x1: number; y1: number; x2: number; y2: number
@@ -32,14 +33,14 @@ interface Props {
 // a horizontal band (0–57%, 43–61%) + a vertical column (42–57%, 61–100%),
 // forming an upside-down T that divides the bottom-left and bottom-right zones.
 const ZONES: Zone[] = [
-  { x1:  0, y1:  0, x2: 42, y2: 43, bg: '#A52828' },
-  { x1: 42, y1:  0, x2:100, y2: 61, bg: '#5E6E20' },
-  { x1: 78, y1:  0, x2:100, y2: 18, bg: '#D4CC20', z: 4 },
-  { x1:  0, y1: 43, x2: 57, y2: 61, bg: '#D08020', z: 2 },
-  { x1: 42, y1: 61, x2: 57, y2:100, bg: '#D08020', z: 2 },
-  { x1:  0, y1: 61, x2: 42, y2:100, bg: '#7FB5CC' },
-  { x1: 57, y1: 61, x2:100, y2:100, bg: '#5E9870' },
-  { x1:  0, y1: 87, x2: 15, y2:100, bg: '#5050A8', z: 4 },
+  { x1:  0, y1:  0, x2: 42, y2: 43, bg: GRID_ZONE_COLOR.ball },
+  { x1: 42, y1:  0, x2:100, y2: 61, bg: GRID_ZONE_COLOR.back },
+  { x1: 78, y1:  0, x2:100, y2: 18, bg: GRID_ZONE_COLOR.lfg, z: 4 },
+  { x1:  0, y1: 43, x2: 57, y2: 61, bg: GRID_ZONE_COLOR.whatitis, z: 2 },
+  { x1: 42, y1: 61, x2: 57, y2:100, bg: GRID_ZONE_COLOR.whatitis, z: 2 },
+  { x1:  0, y1: 61, x2: 42, y2:100, bg: GRID_ZONE_COLOR.over },
+  { x1: 57, y1: 61, x2:100, y2:100, bg: GRID_ZONE_COLOR.vibing },
+  { x1:  0, y1: 87, x2: 15, y2:100, bg: GRID_ZONE_COLOR.mwbs, z: 4 },
 ]
 
 // Zone labels — cx/cy = anchor of zone. Layout matches the reference mockup:
@@ -98,7 +99,8 @@ function fmtStamp(ts: string): string {
   return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()} · ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
 }
 
-// ── Sun / moon glyphs — translucent white, neutral on every zone color ──────
+// ── Sun / moon glyphs — drawn in currentColor so the parent .vibe-point can
+// animate them from white (default) to the zone color (explore mode) ─────────
 function SunGlyph({ size }: { size: number }) {
   const r = size / 2
   const rays = Array.from({ length: 8 }, (_, i) => {
@@ -112,8 +114,9 @@ function SunGlyph({ size }: { size: number }) {
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
       style={{ display: 'block' }}
-      stroke="rgba(255,255,255,0.55)" strokeWidth={1.4} strokeLinecap="round">
-      <circle cx={r} cy={r} r={r * 0.42} fill="rgba(255,255,255,0.28)" stroke="rgba(255,255,255,0.55)" strokeWidth={1.4} />
+      stroke="currentColor" strokeOpacity={0.55} strokeWidth={1.4} strokeLinecap="round">
+      <circle cx={r} cy={r} r={r * 0.42} fill="currentColor" fillOpacity={0.28}
+        stroke="currentColor" strokeOpacity={0.55} strokeWidth={1.4} />
       {rays}
     </svg>
   )
@@ -135,14 +138,14 @@ function MoonGlyph({ size }: { size: number }) {
         </mask>
       </defs>
       <circle cx={r} cy={r} r={R}
-        fill="rgba(255,255,255,0.28)"
-        stroke="rgba(255,255,255,0.55)"
+        fill="currentColor" fillOpacity={0.28}
+        stroke="currentColor" strokeOpacity={0.55}
         strokeWidth={1.2}
         mask={`url(#${maskId})`}
       />
       <circle cx={cutCx} cy={cutCy} r={cutR}
         fill="none"
-        stroke="rgba(255,255,255,0.18)"
+        stroke="currentColor" strokeOpacity={0.18}
         strokeWidth={1.0}
         mask={`url(#${maskId})`}
       />
@@ -280,6 +283,8 @@ export default function MoodGrid({
             const { rx, ry } = toRel(v.valence, v.arousal)
             const day = isDaytime(v.created_at)
             const flip = rx > 0.62
+            // In explore mode the glyph (and its tooltip accent, via currentColor)
+            // animates to the zone color it sits in; otherwise it stays white.
             return (
               <div
                 key={v.id}
@@ -288,6 +293,7 @@ export default function MoodGrid({
                   left: `${rx * 100}%`,
                   top:  `${ry * 100}%`,
                   width: dotSize, height: dotSize,
+                  color: exploreMode ? gridColor(v.valence, v.arousal) : undefined,
                 }}
                 aria-label={day ? 'logged during the day' : 'logged at night'}
               >

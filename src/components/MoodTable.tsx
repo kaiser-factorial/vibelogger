@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { vibeColor } from '../lib/vibeColor'
+import { gridColor } from '../lib/zones'
 import type { Vibe } from '../types'
 import ShareModal from './ShareModal'
 
@@ -113,7 +113,7 @@ export default function MoodTable({ vibes, onDelete, onUpdate }: Props) {
                   <td className="td-muted">{fmtTime(v.created_at)}</td>
                   <td className="td-mono">
                     <span className="vibe-dot"
-                      style={{ background: vibeColor(v.valence, v.arousal) }} />
+                      style={{ background: gridColor(v.valence, v.arousal) }} />
                     ({v.valence}, {v.arousal})
                   </td>
                   <td className="td-note">

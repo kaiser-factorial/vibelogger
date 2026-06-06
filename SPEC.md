@@ -137,6 +137,8 @@ Each logged vibe is rendered as a colored dot. Color encodes both dimensions:
 
 Low-arousal states get dark, muted colors; high-arousal states get bright, vivid ones.
 
+`vibeColor` still drives the **Timeline** dots and the **share cards**. The **mood grid points** (in explore mode) and the **"recorded moods" table dots** instead use `gridColor(valence, arousal)` from `lib/zones.ts`, which returns the bright vibe-square color of the zone the point sits in (`GRID_ZONE_COLOR`). This makes a logged mood's dot match the square it lives in and match across the grid and table. (Three palettes coexist by design: muted `ZONE_META` for accents/labels, bright `GRID_ZONE_COLOR` for the square/points/table dots, and the `vibeColor` HSL gradient for timeline/share.)
+
 ---
 
 ## 5. Feature Inventory (current)
@@ -147,7 +149,7 @@ Low-arousal states get dark, muted colors; high-arousal states get bright, vivid
 - Zone backgrounds rendered as absolute-positioned divs (using `left/top/right/bottom` %)
 - **Labels toggle**: shows/hides zone text labels (black, centered per zone)
 - **Emotion wheel toggle**: overlays Russell Circumplex affect labels (e.g. "tense", "serene", "excited") as ghosted text at their canonical circumplex positions
-- **Explore mode toggle**: makes the grid read-only (no click-to-log); dots show a timestamp tooltip on hover. Useful for reviewing past entries without accidentally logging.
+- **Explore mode toggle**: makes the grid read-only (no click-to-log); dots show a timestamp tooltip on hover. Useful for reviewing past entries without accidentally logging. On enter, the background zones dim/desaturate and each point's glyph animates (via `currentColor` + a CSS `color` transition) from white to its zone's `gridColor`; a stronger drop-shadow keeps it legible against the same-hue square. The hover tooltip picks up the same zone color on its left accent bar, coordinate text, and sun/moon glyph (all `currentColor`, inherited from the point).
 - **Time-of-day glyphs**: each dot renders a small sun (logged 6:00–17:59) or crescent moon (18:00–5:59) SVG overlay, indicating time of day at logging. Moon uses an SVG mask (circle minus offset circle) for a proper crescent curve; each instance gets a unique mask ID via `useRef` to prevent DOM conflicts.
 - **Background**: body has two tiled linear-gradient layers (135° and 45°) at 0.11–0.13 opacity sampling the zone color palette, giving the page a subtle mood-map texture.
 - Responsive: scales font sizes at `<768px` via `labelScale = isMobile ? 0.58 : 1`
@@ -162,7 +164,7 @@ Low-arousal states get dark, muted colors; high-arousal states get bright, vivid
 - **Theme preview**: the modal previews the accent this click is about to apply (see Dynamic Vibe Accent). The backdrop gets a faint radial wash of the clicked zone's color and the submit ("log it") button is the full zone color, while the modal's own controls stay neutral cream/charcoal. Implemented by setting CSS vars inline on the backdrop: `--accent*` are overridden to the neutral palette (`paletteFor(null)`) and `--preview-*` carry the zone palette, which only `.btn-primary--preview` consumes.
 
 ### Mood Table (`src/components/MoodTable.tsx`)
-- Lists all entries for the logged-in user, newest first
+- Lists all entries for the logged-in user, newest first; each row's `.vibe-dot` uses `gridColor` so it matches the point's color on the grid
 - **3-hour edit window**: edit + delete buttons visible for `created_at` within 3 hours; locked indicator (`·`) after that
 - Inline note editing: click edit → input replaces note cell → Enter saves, Escape cancels
 - **Undo delete**: clicking × immediately hides the row and shows a sticky toast ("entry deleted · undo (Xs)") with a 5-second live countdown. The actual Supabase `DELETE` fires only when the timer expires. Clicking undo cancels the timer and restores the row. Multiple simultaneous pending deletes are supported.

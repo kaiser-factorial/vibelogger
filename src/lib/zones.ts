@@ -32,3 +32,23 @@ export function getZone(valence: number, arousal: number): ZoneId {
   if (valence < 6.1)  return 'whatitis'
   return 'vibing'
 }
+
+// Bright display palette used for the vibe-square backgrounds (and therefore the
+// plotted points and the "recorded moods" dots). Deliberately more saturated
+// than ZONE_META, which drives the muted accent/label palette. Single source of
+// truth so the grid squares, grid points, and table dots all match.
+export const GRID_ZONE_COLOR: Record<ZoneId, string> = {
+  ball:     '#A52828',
+  back:     '#5E6E20',
+  lfg:      '#D4CC20',
+  whatitis: '#D08020',
+  over:     '#7FB5CC',
+  vibing:   '#5E9870',
+  mwbs:     '#5050A8',
+}
+
+// The vibe-square color for a logged point — i.e. the color of the zone region
+// it sits in. Used for plotted points (explore mode) and recorded-mood dots.
+export function gridColor(valence: number, arousal: number): string {
+  return GRID_ZONE_COLOR[getZone(valence, arousal)]
+}
