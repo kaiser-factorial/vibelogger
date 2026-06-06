@@ -275,6 +275,7 @@ src/
 public/
   manifest.json           PWA manifest
   icon.svg                app icon
+  sw.js                   service worker (cache-first assets, pass-through Supabase)
 
 index.html                PWA meta tags + Google Fonts link
 vite.config.js            base: '/', vitest config (jsdom environment)
@@ -318,9 +319,6 @@ Per-user rename of the seven zone labels, stored in a `zone_labels` column on `p
 
 **Mutual follows / follow-back indicator**  
 Show a "follows you back" badge next to usernames in similar vibers. Requires a second query or join on the `follows` table.
-
-**Timeline pagination**  
-The timeline currently loads all public entries in one query. Cursor-based pagination needed once entry volume grows.
 
 ---
 
