@@ -147,6 +147,9 @@ Low-arousal states get dark, muted colors; high-arousal states get bright, vivid
 - Zone backgrounds rendered as absolute-positioned divs (using `left/top/right/bottom` %)
 - **Labels toggle**: shows/hides zone text labels (black, centered per zone)
 - **Emotion wheel toggle**: overlays Russell Circumplex affect labels (e.g. "tense", "serene", "excited") as ghosted text at their canonical circumplex positions
+- **Explore mode toggle**: makes the grid read-only (no click-to-log); dots show a timestamp tooltip on hover. Useful for reviewing past entries without accidentally logging.
+- **Time-of-day glyphs**: each dot renders a small sun (logged 6:00–17:59) or crescent moon (18:00–5:59) SVG overlay, indicating time of day at logging. Moon uses an SVG mask (circle minus offset circle) for a proper crescent curve; each instance gets a unique mask ID via `useRef` to prevent DOM conflicts.
+- **Background**: body has two tiled linear-gradient layers (135° and 45°) at 0.17–0.20 opacity sampling the zone color palette, giving the page a subtle mood-map texture.
 - Responsive: scales font sizes at `<768px` via `labelScale = isMobile ? 0.58 : 1`
 
 ### Log Modal (`src/components/MoodModal.tsx`)
@@ -162,14 +165,16 @@ Low-arousal states get dark, muted colors; high-arousal states get bright, vivid
 - **3-hour edit window**: edit + delete buttons visible for `created_at` within 3 hours; locked indicator (`·`) after that
 - Inline note editing: click edit → input replaces note cell → Enter saves, Escape cancels
 - **Undo delete**: clicking × immediately hides the row and shows a sticky toast ("entry deleted · undo (Xs)") with a 5-second live countdown. The actual Supabase `DELETE` fires only when the timer expires. Clicking undo cancels the timer and restores the row. Multiple simultaneous pending deletes are supported.
+- **Share button** (`↗`): visible on public entries regardless of edit lock. Opens `ShareModal`.
 - 3-hour lock enforced client-side (UI hides buttons) and server-side (RLS policies)
 
 ### Analysis Panel (`src/components/Analysis.tsx`)
 - **Locked until 10 entries** (total, not date-filtered) — progress bar shown
 - **Date filter**: from/to inputs filter all sections below
-- **Export CSV**: "↓ csv" button in the filter row — downloads the current filtered slice. Disabled when filtered set is empty. Headers: date, time, valence, arousal, zone, note.
-- **Stats strip**: entry count, avg valence, avg arousal, note count (≥3 words)
+- **Export CSV/JSON**: "↓ csv" and "↓ json" buttons — download the current filtered slice. Disabled when filtered set is empty. CSV headers: date, time, valence, arousal, zone, note. JSON includes all Vibe fields plus computed zone.
+- **Stats strip**: entry count, avg valence, avg arousal, note count (≥3 words), current streak, best streak. Streak is computed from all-time data (ignores the date filter).
 - **Trend line**: daily-average valence and arousal sparklines with dashed least-squares regression overlays and ↑↓→ direction arrows. Appears when ≥2 calendar days of data exist in the filtered window.
+- **Time-of-day analysis**: 4-slot grid (morning 6–11, afternoon 12–16, evening 17–20, night 21–5) showing entry count and avg valence/arousal per slot. Each slot's border is tinted by the dominant zone color.
 - **Heatmap**: 10×10 grid colored by entry density
 - **Zone breakdown**: horizontal bar chart sorted by frequency
 - **Word analysis**: top 5 words per zone, stop-words filtered, only notes with ≥3 words counted
@@ -179,6 +184,7 @@ Low-arousal states get dark, muted colors; high-arousal states get bright, vivid
 - Each entry: colored dot, zone label (in zone color), `@username`, time-ago, optional note (if `note_public = true`)
 - Own entries highlighted subtly
 - **Feed filter**: toggle between "everyone" (all public vibes) and "following (N)" (own entries + followed users' entries)
+- **Cursor-based pagination**: loads 20 entries at a time using `.lt('created_at', cursor)`. A "load more" button appears at the bottom of the everyone feed when more entries exist. Profile lookups are batched per page (only new user IDs fetched, accumulated across pages via `useRef`).
 - **Similar vibers**: computes 7-dimensional zone distribution vector per user; ranks all other users by Euclidean distance; shows top 5 with a % match score and a follow/unfollow button per row. Requires ≥5 public entries from current user and ≥3 from candidates to appear.
 
 ### Auth (`src/components/Auth.tsx`)
@@ -189,6 +195,16 @@ Low-arousal states get dark, muted colors; high-arousal states get bright, vivid
 ### Set Password Modal (`src/components/SetPasswordModal.tsx`)
 - Accessible from header; allows users who signed in via magic link to set a password
 - Uses `supabase.auth.updateUser({ password })`
+
+### Shareable Vibe Card (`src/components/ShareModal.tsx` + `src/components/PublicShareView.tsx`)
+- `ShareModal`: opened from the `↗` button in MoodTable. Previews the vibe as a styled card. "Copy link" encodes vibe data (zone, valence, arousal, timestamp, note if `note_public`) as base64 JSON in `?share=<token>` — no server required, no auth required to view.
+- `PublicShareView`: rendered by `App.tsx` when `?share=` is detected in the URL (checked before auth). Decodes the token and renders the share card. Falls back to an error message for malformed tokens. Includes a CTA link back to the app.
+
+### Username Editing (`src/components/EditUsernameModal.tsx` + `src/hooks/useProfile.ts`)
+- Header shows `@username` as a clickable button (only when username is loaded)
+- Clicking opens `EditUsernameModal`: text input pre-filled with current username, validates non-empty / max 30 chars / alphanumeric+underscore only
+- `useProfile` hook fetches username from `profiles` on mount and exposes `updateUsername` which writes to Supabase and updates local state
+- Username defaults to email prefix (set by signup trigger); modal allows changing it to any valid handle
 
 ### PWA
 - `public/manifest.json` + `public/icon.svg` in place
@@ -225,16 +241,20 @@ All undo logic lives in `MoodTable` — no changes to `useVibes`. A `pendingDele
 src/
   components/
     Auth.tsx              magic link + password auth UI
-    Analysis.tsx          full analysis panel (filter, export, trend, heatmap, etc.)
+    Analysis.tsx          full analysis panel (filter, export, trend, tod, heatmap, etc.)
+    EditUsernameModal.tsx username edit modal (validation + Supabase write)
     MoodGrid.tsx          the clickable 2D grid with zones/dots/overlays
     MoodModal.tsx         post-click entry modal (note + privacy toggles)
-    MoodTable.tsx         entries list with inline edit, undo delete, 3hr lock
+    MoodTable.tsx         entries list with inline edit, undo delete, share, 3hr lock
+    PublicShareView.tsx   auth-free card view for ?share= URLs
     SetPasswordModal.tsx  upgrade magic-link account to password auth
+    ShareModal.tsx        share modal — card preview + copy-link button
     Timeline.tsx          global feed, following filter, similar vibers + follow buttons
   hooks/
     useVibes.ts           CRUD for current user's entries (optimistic)
-    useTimeline.ts        fetches public entries + profiles for timeline
+    useTimeline.ts        fetches public entries + profiles; cursor-based pagination
     useFollows.ts         follow/unfollow state with optimistic updates + error revert
+    useProfile.ts         fetch + update username from profiles table
   lib/
     database.types.ts     Supabase schema types (vibes, profiles, follows)
     supabase.ts           Supabase client init (plain, non-generic — see §2)
@@ -275,26 +295,15 @@ Items are loosely ordered by effort/value. Nothing here is committed — all are
 - ✓ **Export CSV** — filter-aware download button in analysis panel
 - ✓ **Undo delete** — 5-second undo toast replacing two-click confirm
 - ✓ **Trend line** — daily avg valence/arousal sparklines + regression overlays in analysis panel
-
-### Medium effort
-
-**Streak tracking**  
-Count consecutive days with ≥1 entry. Surface as a badge or stat pill. Worth discussing whether streak mechanics fit the mood-tracker context — they can feel pressuring.
-
-**Time-of-day analysis**  
-Bucket entries by morning/afternoon/evening/night and show zone distribution per bucket. Needs decent data volume before it's meaningful.
-
-**PWA service worker**  
-The manifest is live but there's no service worker. A cache-first strategy for static assets + a queue for offline entries would make the app fully installable. Needs careful cache invalidation once the data model stabilizes.
-
-**Shareable vibe card**  
-Generate an OG-image or mini shareable URL for a single entry — a small mood grid with one dot and the zone label. Requires a serverless function (Vercel Edge Function + Satori or similar).
-
-**JSON export option**  
-The current export is CSV-only; a JSON download would preserve types and be easier to re-import or pass to scripts.
-
-**Username editing**  
-Currently usernames are immutable email prefixes. A simple profile edit form to set a display name would improve the social layer.
+- ✓ **Timeline pagination** — cursor-based, 20 entries/page, "load more" button
+- ✓ **Username editing** — clickable `@handle` in header opens edit modal
+- ✓ **Time-of-day glyphs** — sun/moon overlay on each dot based on logging hour
+- ✓ **Vibrant background** — tiled zone-color gradient layers behind the whole app
+- ✓ **Streak tracking** — current and all-time best streak shown in analysis stats strip (all-time, not date-filtered)
+- ✓ **Time-of-day analysis** — analysis section bucketing entries by morning/afternoon/evening/night with count and avg v/a per slot
+- ✓ **JSON export** — `↓ json` button alongside CSV; exports filtered slice with all fields including zone
+- ✓ **Shareable vibe card** — `↗` on public entries opens share modal; "copy link" produces a `?share=<token>` URL with base64-encoded vibe data. `PublicShareView` renders the card without auth for any share URL.
+- ✓ **PWA service worker** — `public/sw.js`: cache-first for `/assets/` (Vite content-hashed bundles), network-first for navigation, pass-through for Supabase. Registered in `main.tsx`.
 
 ### Longer-term / speculative
 
@@ -318,9 +327,10 @@ The timeline currently loads all public entries in one query. Cursor-based pagin
 ## 9. Known Gaps & Gotchas
 
 - **Optimistic updates in `useVibes` don't roll back** on error (see §6). `useFollows` does roll back correctly.
-- **Profile usernames are email prefixes** and currently immutable from the UI.
 - **`labelScale` on mobile** scales all label font sizes by 0.58. If label sizes are adjusted, verify at mobile widths.
 - **The 3-hour lock constant exists in two places**: `MoodTable.tsx` (client) and the Supabase RLS policy (server). They must stay in sync.
 - **No error boundary.** An uncaught render error will crash the whole app.
-- **Timeline loads all public entries at once.** Will not scale past a few hundred rows without pagination.
 - **Similar vibers uses all-time data.** The zone distribution vectors are computed from a user's full public history, not a recent window. Could be noisy for users whose mood patterns have shifted.
+- **Timeline pagination only applies to the "everyone" feed.** The "following" filter is applied client-side over already-loaded entries, so it only covers the pages fetched so far.
+- **Share links encode vibe data client-side** — they are not validated against the DB when viewed. A share link for a private-later-made vibe will still show the original data.
+- **PWA is not offline-capable for data.** Static assets are cached; Supabase API calls are always network-only. The app requires connectivity to log or fetch vibes.
