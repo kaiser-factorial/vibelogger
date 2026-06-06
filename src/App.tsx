@@ -9,12 +9,16 @@ import Analysis from './components/Analysis'
 import Timeline from './components/Timeline'
 import SetPasswordModal from './components/SetPasswordModal'
 import EditUsernameModal from './components/EditUsernameModal'
+import PublicShareView from './components/PublicShareView'
 import useVibes from './hooks/useVibes'
 import useFollows from './hooks/useFollows'
 import useProfile from './hooks/useProfile'
 import type { PendingVibe } from './types'
 
 type View = 'log' | 'analysis' | 'timeline'
+
+// Resolved once at module load — share links are static URLs, no reactivity needed
+const SHARE_TOKEN = new URLSearchParams(window.location.search).get('share')
 
 export default function App() {
   const [session,     setSession]     = useState<Session | null>(null)
@@ -61,6 +65,7 @@ export default function App() {
     setPendingVibe(null)
   }
 
+  if (SHARE_TOKEN) return <PublicShareView token={SHARE_TOKEN} />
   if (authLoading) return <div className="loading">loading...</div>
   if (!session)    return <Auth />
 

@@ -74,6 +74,26 @@ function slopeArrow(slope: number): string {
   return '→'
 }
 
+function exportJSON(vibes: Vibe[]) {
+  const data = vibes.map(v => ({
+    id: v.id,
+    date: v.created_at,
+    valence: v.valence,
+    arousal: v.arousal,
+    zone: getZone(v.valence, v.arousal),
+    note: v.note ?? null,
+    public: v.public,
+    note_public: v.note_public,
+  }))
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href     = url
+  a.download = `vibeslogger-${new Date().toISOString().split('T')[0]}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 function exportCSV(vibes: Vibe[]) {
   const headers = ['date', 'time', 'valence', 'arousal', 'zone', 'note']
   const rows = vibes.map(v => {
@@ -98,12 +118,59 @@ function exportCSV(vibes: Vibe[]) {
   URL.revokeObjectURL(url)
 }
 
+function getStreak(vibes: Vibe[]): { current: number; longest: number } {
+  if (!vibes.length) return { current: 0, longest: 0 }
+  const days = [...new Set(vibes.map(v => v.created_at.split('T')[0]))].sort()
+
+  let longest = 1, run = 1
+  for (let i = 1; i < days.length; i++) {
+    const d = new Date(days[i - 1]); d.setDate(d.getDate() + 1)
+    if (days[i] === d.toISOString().split('T')[0]) { run++; if (run > longest) longest = run }
+    else run = 1
+  }
+
+  let current = 0
+  const today     = new Date().toISOString().split('T')[0]
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+  const last = days[days.length - 1]
+  if (last === today || last === yesterday) {
+    current = 1
+    let check = last
+    for (let i = days.length - 2; i >= 0; i--) {
+      const d = new Date(check); d.setDate(d.getDate() - 1)
+      if (days[i] === d.toISOString().split('T')[0]) { current++; check = days[i] }
+      else break
+    }
+  }
+
+  return { current, longest: Math.max(longest, current) }
+}
+
+type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'night'
+
+function getTimeSlot(ts: string): TimeSlot {
+  const h = new Date(ts).getHours()
+  if (h >= 6  && h < 12) return 'morning'
+  if (h >= 12 && h < 17) return 'afternoon'
+  if (h >= 17 && h < 21) return 'evening'
+  return 'night'
+}
+
+const TIME_META: Record<TimeSlot, { label: string; range: string }> = {
+  morning:   { label: 'morning',   range: '6–11' },
+  afternoon: { label: 'afternoon', range: '12–16' },
+  evening:   { label: 'evening',   range: '17–20' },
+  night:     { label: 'night',     range: '21–5' },
+}
+const TIME_ORDER: TimeSlot[] = ['morning', 'afternoon', 'evening', 'night']
+
 // ── sub-components ────────────────────────────────────────────────────────────
 
-function StatsStrip({ vibes }: { vibes: Vibe[] }) {
-  const avgV = avg(vibes.map(v => v.valence))
-  const avgA = avg(vibes.map(v => v.arousal))
+function StatsStrip({ vibes, allVibes }: { vibes: Vibe[]; allVibes: Vibe[] }) {
+  const avgV      = avg(vibes.map(v => v.valence))
+  const avgA      = avg(vibes.map(v => v.arousal))
   const withNotes = vibes.filter(v => v.note && v.note.trim().split(/\s+/).length >= 3).length
+  const streak    = useMemo(() => getStreak(allVibes), [allVibes])
 
   return (
     <div className="stats-strip">
@@ -122,6 +189,64 @@ function StatsStrip({ vibes }: { vibes: Vibe[] }) {
       <div className="stat-pill">
         <span className="stat-value">{withNotes}</span>
         <span className="stat-label">notes ≥3w</span>
+      </div>
+      {streak.current > 0 && (
+        <div className="stat-pill stat-pill--accent">
+          <span className="stat-value">{streak.current}d</span>
+          <span className="stat-label">streak</span>
+        </div>
+      )}
+      {streak.longest > 1 && (
+        <div className="stat-pill">
+          <span className="stat-value">{streak.longest}d</span>
+          <span className="stat-label">best streak</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TimeOfDayAnalysis({ vibes }: { vibes: Vibe[] }) {
+  const slots = useMemo(() => {
+    const grouped: Record<TimeSlot, Vibe[]> = { morning: [], afternoon: [], evening: [], night: [] }
+    for (const v of vibes) grouped[getTimeSlot(v.created_at)].push(v)
+    return grouped
+  }, [vibes])
+
+  const hasData = TIME_ORDER.some(s => slots[s].length > 0)
+  if (!hasData) return null
+
+  return (
+    <div className="analysis-section">
+      <div className="analysis-section-title">time of day</div>
+      <div className="analysis-section-sub">how your vibe shifts throughout the day</div>
+      <div className="tod-grid">
+        {TIME_ORDER.map(slot => {
+          const sv = slots[slot]
+          const meta = TIME_META[slot]
+          if (!sv.length) return (
+            <div key={slot} className="tod-slot tod-slot--empty">
+              <div className="tod-slot-name">{meta.label}</div>
+              <div className="tod-slot-range">{meta.range}</div>
+              <div className="tod-slot-count">—</div>
+            </div>
+          )
+          const avgV = avg(sv.map(v => v.valence))
+          const avgA = avg(sv.map(v => v.arousal))
+          const zone = getZone(avgV, avgA)
+          const { color } = ZONE_META[zone]
+          return (
+            <div key={slot} className="tod-slot" style={{ borderColor: color + '55' }}>
+              <div className="tod-slot-name">{meta.label}</div>
+              <div className="tod-slot-range" style={{ color }}>{meta.range}</div>
+              <div className="tod-slot-count">{sv.length} {sv.length === 1 ? 'entry' : 'entries'}</div>
+              <div className="tod-slot-stats">
+                <span className="tod-stat">v {avgV.toFixed(1)}</span>
+                <span className="tod-stat">a {avgA.toFixed(1)}</span>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -357,6 +482,7 @@ export default function Analysis({ vibes }: { vibes: Vibe[] }) {
 
   const filtered  = useMemo(() => filterByDate(vibes, from, to), [vibes, from, to])
   const hasFilter = from || to
+  // allVibes (unfiltered) used for streak — a streak spans your whole history
 
   if (vibes.length < UNLOCK_THRESHOLD) {
     const needed = UNLOCK_THRESHOLD - vibes.length
@@ -392,22 +518,33 @@ export default function Analysis({ vibes }: { vibes: Vibe[] }) {
             clear
           </button>
         )}
-        <button
-          className="btn-ghost filter-export"
-          onClick={() => exportCSV(filtered)}
-          title={`export ${filtered.length} entries as CSV`}
-          disabled={filtered.length === 0}
-        >
-          ↓ csv
-        </button>
+        <div className="filter-export-group">
+          <button
+            className="btn-ghost filter-export"
+            onClick={() => exportCSV(filtered)}
+            title={`export ${filtered.length} entries as CSV`}
+            disabled={filtered.length === 0}
+          >
+            ↓ csv
+          </button>
+          <button
+            className="btn-ghost filter-export"
+            onClick={() => exportJSON(filtered)}
+            title={`export ${filtered.length} entries as JSON`}
+            disabled={filtered.length === 0}
+          >
+            ↓ json
+          </button>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
         <div className="analysis-empty-state">no entries in this date range</div>
       ) : (
         <>
-          <StatsStrip vibes={filtered} />
+          <StatsStrip vibes={filtered} allVibes={vibes} />
           <TrendLine  vibes={filtered} />
+          <TimeOfDayAnalysis vibes={filtered} />
           <Heatmap    vibes={filtered} />
           <ZoneBreakdown vibes={filtered} />
           <WordAnalysis  vibes={filtered} />

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { vibeColor } from '../lib/vibeColor'
 import type { Vibe } from '../types'
+import ShareModal from './ShareModal'
 
 interface Props {
   vibes: Vibe[]
@@ -34,6 +35,7 @@ export default function MoodTable({ vibes, onDelete, onUpdate }: Props) {
   const [editingId,     setEditingId]     = useState<string | null>(null)
   const [editNote,      setEditNote]      = useState('')
   const [saving,        setSaving]        = useState(false)
+  const [sharingVibe,   setSharingVibe]   = useState<Vibe | null>(null)
   const [pendingDeletes, setPendingDeletes] = useState<Map<string, PendingDelete>>(new Map())
   const [tick,          setTick]          = useState(0)
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -131,9 +133,7 @@ export default function MoodTable({ vibes, onDelete, onUpdate }: Props) {
                     )}
                   </td>
                   <td className="td-actions">
-                    {locked ? (
-                      <span className="entry-locked" title="locked after 3 hours">·</span>
-                    ) : editing ? (
+                    {editing ? (
                       <div className="row-actions">
                         <button className="btn-save" onClick={() => saveEdit(v.id)} disabled={saving}>
                           {saving ? '...' : 'save'}
@@ -142,9 +142,19 @@ export default function MoodTable({ vibes, onDelete, onUpdate }: Props) {
                       </div>
                     ) : (
                       <div className="row-actions">
-                        <button className="btn-edit" onClick={() => startEdit(v)}>edit</button>
-                        <button className="btn-delete" onClick={() => startDelete(v)}
-                          title="delete">×</button>
+                        {v.public && (
+                          <button className="btn-share" onClick={() => setSharingVibe(v)}
+                            title="share">↗</button>
+                        )}
+                        {locked ? (
+                          <span className="entry-locked" title="locked after 3 hours">·</span>
+                        ) : (
+                          <>
+                            <button className="btn-edit" onClick={() => startEdit(v)}>edit</button>
+                            <button className="btn-delete" onClick={() => startDelete(v)}
+                              title="delete">×</button>
+                          </>
+                        )}
                       </div>
                     )}
                   </td>
@@ -153,6 +163,10 @@ export default function MoodTable({ vibes, onDelete, onUpdate }: Props) {
             })}
           </tbody>
         </table>
+      )}
+
+      {sharingVibe && (
+        <ShareModal vibe={sharingVibe} onClose={() => setSharingVibe(null)} />
       )}
 
       {/* Undo toast */}
