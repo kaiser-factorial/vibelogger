@@ -93,9 +93,11 @@ export default function App() {
                 @{username}
               </button>
             )}
-            <button className="btn-setpw" onClick={() => setSettingPassword(true)}>
-              set password
-            </button>
+            {!session.user.user_metadata?.has_password && (
+              <button className="btn-setpw" onClick={() => setSettingPassword(true)}>
+                set password
+              </button>
+            )}
             <button className="btn-signout" onClick={() => supabase.auth.signOut()}>
               sign out
             </button>

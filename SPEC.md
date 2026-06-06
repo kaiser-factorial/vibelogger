@@ -200,10 +200,11 @@ Low-arousal states get dark, muted colors; high-arousal states get bright, vivid
 - Two tabs: magic link (OTP email) and email/password
 - Sign-up/sign-in toggle in password mode
 - `emailRedirectTo: window.location.origin`
+- Password sign-up sets `user_metadata.has_password = true`; password sign-in backfills that flag if missing (so pre-existing password accounts get it on next login). This drives whether the header shows "set password" (see below).
 
 ### Set Password Modal (`src/components/SetPasswordModal.tsx`)
-- Accessible from header; allows users who signed in via magic link to set a password
-- Uses `supabase.auth.updateUser({ password })`
+- Accessible from the header; allows users who signed in via magic link to set a password. The header button is hidden once `user_metadata.has_password` is set (so it disappears after the initial password is set, and never shows for password-signup users).
+- Uses `supabase.auth.updateUser({ password, data: { has_password: true } })`
 
 ### Shareable Vibe Card (`src/components/ShareModal.tsx` + `src/components/PublicShareView.tsx`)
 - `ShareModal`: opened from the `↗` button in MoodTable. Previews the vibe as a styled card. "Copy link" encodes vibe data (zone, valence, arousal, timestamp, note if `note_public`) as base64 JSON in `?share=<token>` — no server required, no auth required to view.

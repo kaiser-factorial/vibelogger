@@ -16,7 +16,8 @@ export default function SetPasswordModal({ onClose }: Props) {
     e.preventDefault()
     if (password !== confirm) { setError("passwords don't match"); return }
     setLoading(true); setError(null)
-    const { error } = await supabase.auth.updateUser({ password })
+    // Flag has_password so the header's "set password" button hides once set.
+    const { error } = await supabase.auth.updateUser({ password, data: { has_password: true } })
     setLoading(false)
     if (error) setError(error.message)
     else setDone(true)

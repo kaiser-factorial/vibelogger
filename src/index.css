@@ -386,31 +386,27 @@ button { -webkit-tap-highlight-color: transparent; }
 .btn-ghost:hover { background: var(--border-mid); color: var(--text); }
 .btn-ghost:active { transform: scale(0.97); }
 
-.header-actions { display: flex; align-items: center; gap: 14px; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
 
-.btn-signout {
-  background: none; border: none; color: var(--muted);
-  cursor: pointer; font-size: 11px; font-family: inherit; padding: 0;
-  transition: color 0.15s, transform 0.1s;
+/* Header action buttons sit on the colorful page background, so they get a
+   translucent dark pill + border + shadow to stay legible. */
+.btn-signout, .btn-setpw, .btn-username {
+  background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border);
+  border-radius: 999px; padding: 4px 11px;
+  cursor: pointer; font-size: 11px; font-family: inherit;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  transition: color 0.15s, background 0.15s, border-color 0.15s, transform 0.1s;
 }
-.btn-signout:hover { color: var(--text); }
-.btn-signout:active { transform: scale(0.94); }
+.btn-signout:active, .btn-setpw:active, .btn-username:active { transform: scale(0.94); }
 
-.btn-setpw {
-  background: none; border: none; color: var(--border-strong);
-  cursor: pointer; font-size: 11px; font-family: inherit; padding: 0;
-  transition: color 0.15s, transform 0.1s;
-}
-.btn-setpw:hover { color: var(--muted); }
-.btn-setpw:active { transform: scale(0.94); }
+.btn-signout { color: var(--fg-soft); }
+.btn-signout:hover { color: var(--text); background: rgba(0, 0, 0, 0.6); }
 
-.btn-username {
-  background: none; border: none; color: var(--accent);
-  cursor: pointer; font-size: 11px; font-family: inherit; padding: 0;
-  transition: opacity 0.15s, transform 0.1s;
-}
-.btn-username:hover { opacity: 0.75; }
-.btn-username:active { transform: scale(0.94); }
+.btn-setpw { color: var(--fg-soft); }
+.btn-setpw:hover { color: var(--text); background: rgba(0, 0, 0, 0.6); }
+
+.btn-username { color: var(--accent); font-weight: 700; }
+.btn-username:hover { background: rgba(0, 0, 0, 0.6); border-color: var(--accent); }
 
 .btn-delete {
   background: none; border: none; color: var(--fg-quiet);

@@ -29,11 +29,23 @@ export default function Auth() {
   async function handlePassword(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError(null)
-    const { error } = isSignUp
-      ? await supabase.auth.signUp({ email, password })
-      : await supabase.auth.signInWithPassword({ email, password })
-    setLoading(false)
-    if (error) setError(error.message)
+    if (isSignUp) {
+      // Flag has_password so the header's "set password" button never shows.
+      const { error } = await supabase.auth.signUp({
+        email, password, options: { data: { has_password: true } },
+      })
+      setLoading(false)
+      if (error) setError(error.message)
+    } else {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      // Backfill the flag for accounts created before it existed — signing in
+      // with a password proves one is set.
+      if (!error && data.user && !data.user.user_metadata?.has_password) {
+        await supabase.auth.updateUser({ data: { has_password: true } })
+      }
+      setLoading(false)
+      if (error) setError(error.message)
+    }
     // success: onAuthStateChange in App.tsx handles session
   }
 
