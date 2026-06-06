@@ -112,25 +112,39 @@ function SunGlyph({ size }: { size: number }) {
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
       style={{ display: 'block' }}
-      stroke="rgba(255,255,255,0.92)" strokeWidth={1.4} strokeLinecap="round">
-      <circle cx={r} cy={r} r={r * 0.42} fill="rgba(255,255,255,0.5)" stroke="rgba(255,255,255,0.92)" strokeWidth={1.4} />
+      stroke="rgba(255,255,255,0.55)" strokeWidth={1.4} strokeLinecap="round">
+      <circle cx={r} cy={r} r={r * 0.42} fill="rgba(255,255,255,0.28)" stroke="rgba(255,255,255,0.55)" strokeWidth={1.4} />
       {rays}
     </svg>
   )
 }
 
 function MoonGlyph({ size }: { size: number }) {
+  const maskId = useRef(`moon-${Math.random().toString(36).slice(2, 7)}`).current
   const r = size / 2
+  const R = r * 0.78
+  const cutCx = r + R * 0.42
+  const cutCy = r - R * 0.10
+  const cutR  = R * 0.82
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block' }}>
-      <path
-        d={`M ${r * 1.18} ${r * 0.32}
-            A ${r * 0.82} ${r * 0.82} 0 1 0 ${r * 1.18} ${r * 1.68}
-            A ${r * 0.64} ${r * 0.64} 0 1 1 ${r * 1.18} ${r * 0.32} Z`}
-        fill="rgba(255,255,255,0.5)"
-        stroke="rgba(255,255,255,0.92)"
+      <defs>
+        <mask id={maskId}>
+          <rect width={size} height={size} fill="white" />
+          <circle cx={cutCx} cy={cutCy} r={cutR} fill="black" />
+        </mask>
+      </defs>
+      <circle cx={r} cy={r} r={R}
+        fill="rgba(255,255,255,0.28)"
+        stroke="rgba(255,255,255,0.55)"
         strokeWidth={1.2}
-        strokeLinejoin="round"
+        mask={`url(#${maskId})`}
+      />
+      <circle cx={cutCx} cy={cutCy} r={cutR}
+        fill="none"
+        stroke="rgba(255,255,255,0.18)"
+        strokeWidth={1.0}
+        mask={`url(#${maskId})`}
       />
     </svg>
   )

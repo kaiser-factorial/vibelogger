@@ -16,8 +16,6 @@
   font-family: 'IBM Plex Mono', 'Courier New', monospace;
 }
 
-/* Subtle tiled vibe-color background — echoes the mood-square palette.
-   Kept very low opacity and fixed behind everything so text stays readable. */
 body {
   background-color: var(--bg);
   color: var(--text);
@@ -25,14 +23,14 @@ body {
   overflow: hidden;
   background-image:
     linear-gradient(135deg,
-      rgba(165,40,40,0.05)   0 25%,
-      rgba(94,110,32,0.05)   25% 50%,
-      rgba(208,128,32,0.05)  50% 75%,
-      rgba(94,152,112,0.05)  75% 100%),
+      rgba(165,40,40,0.20)   0 25%,
+      rgba(94,110,32,0.20)   25% 50%,
+      rgba(208,128,32,0.20)  50% 75%,
+      rgba(94,152,112,0.20)  75% 100%),
     linear-gradient(45deg,
-      rgba(127,181,204,0.04) 0 33%,
-      rgba(212,204,32,0.04)  33% 66%,
-      rgba(80,80,168,0.04)   66% 100%);
+      rgba(127,181,204,0.17) 0 33%,
+      rgba(212,204,32,0.17)  33% 66%,
+      rgba(80,80,168,0.17)   66% 100%);
   background-size: 220px 220px, 300px 300px;
   background-attachment: fixed;
 }
