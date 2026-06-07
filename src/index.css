@@ -900,7 +900,7 @@ button { -webkit-tap-highlight-color: transparent; }
 /* ── Share button (in table row actions) ── */
 .btn-share {
   background: none; border: none; color: var(--border-strong);
-  cursor: pointer; font-size: 13px; padding: 0 3px;
+  cursor: pointer; font-size: 18px; padding: 0 3px;
   font-family: inherit; line-height: 1;
   transition: color 0.12s, transform 0.1s;
 }
