@@ -185,14 +185,14 @@ The **mood grid points** (in explore mode), the **"recorded moods" table dots**,
 ### Mood Table (`src/components/MoodTable.tsx`)
 - Lists all entries for the logged-in user, newest first; each row's `.vibe-dot` uses `gridColor` so it matches the point's color on the grid
 - **Empty state**: when the user has zero entries, shows a large, prominent, fully-centered message (`.table-empty-state` — flexbox-centered both axes, fills the column height) reading "no logs yet / click on the grid to log a mood" — replacing a much smaller, low-contrast one-line note that was easy to miss for new accounts
-- **3-hour edit window**: edit + delete buttons visible for `created_at` within 3 hours; locked indicator (`·`) after that
-- Inline note editing: click edit → input replaces note cell → Enter saves, Escape cancels
-- **Undo delete**: clicking × immediately hides the row and shows a sticky toast ("entry deleted · undo (Xs)") with a 5-second live countdown. The actual Supabase `DELETE` fires only when the timer expires. Clicking undo cancels the timer and restores the row. Multiple simultaneous pending deletes are supported.
-- **Share button** (`↗`): visible on public entries regardless of edit lock. Opens `ShareModal`.
+- **3-hour edit window**: row action ellipsis (`•••`) button visible for `created_at` within 3 hours; locked indicator (`·`) after that
+- Row actions open the `VibeActionModal` for both web and mobile, allowing editing the note, deleting the entry, or sharing it.
+- **Undo delete**: clicking Delete in the action modal immediately hides the row and shows a sticky toast ("entry deleted · undo (Xs)") with a 5-second live countdown. The actual Supabase `DELETE` fires only when the timer expires. Clicking undo cancels the timer and restores the row. Multiple simultaneous pending deletes are supported.
+- **Share action**: available in the action modal on public entries regardless of edit lock. Opens `ShareModal`.
 - 3-hour lock enforced client-side (UI hides buttons) and server-side (RLS policies)
 
 ### Analysis Panel (`src/components/Analysis.tsx`)
-- **Locked until 10 entries** (total, not date-filtered) — progress bar shown
+- **Locked until 5 entries** (total, not date-filtered) — progress bar shown
 - **Date filter**: from/to inputs filter all sections below
 - **Export CSV/JSON**: "↓ csv" and "↓ json" buttons — download the current filtered slice. Disabled when filtered set is empty. CSV headers: date, time, valence, arousal, zone, note. JSON includes all Vibe fields plus computed zone.
 - **Stats strip**: entry count, avg valence, avg arousal, note count (≥3 words), current streak, best streak. Both streak values come from the `get_streak_stats` Supabase RPC (see §7 / `useStreaks.ts`); computed all-time (ignores the date filter), using the browser's local timezone so day boundaries match the user's midnight.
@@ -211,11 +211,11 @@ Present in both the web app and the Android app. The `@username` pill and streak
 - Own entries highlighted subtly
 - **Feed filter**: toggle between "everyone" (all public vibes) and "following (N)" (own entries + followed users' entries)
 - **Date range filter**: `from`/`to` date inputs (reusing `Analysis.tsx`'s `filter-input`/`filter-label` pattern); a local `inDateRange` helper duplicates `Analysis`'s date-filter logic intentionally (avoids a premature shared abstraction for two small, independently-evolving filters)
-- **Mood/zone filter**: a row of toggleable zone chips (`Set<ZoneId>`); entries are shown only if their `getZone(valence, arousal)` is in the active set. Date and zone filters combine (AND) and stack with the everyone/following toggle. A "clear filters" button appears whenever any filter is active.
+- **Mood/zone filter**: a row of toggleable zone chips (`Set<ZoneId>`) housed in a collapsible "Filter Vibes" dropdown. Entries are shown only if their `getZone(valence, arousal)` is in the active set. Date and zone filters combine (AND) and stack with the everyone/following toggle. A "clear filters" button appears whenever any filter is active.
 - **Blocked-user filtering**: entries from any `user_id` in `blockedIds` are filtered out of the feed entirely (`entries.filter(e => !blockedIds.has(e.user_id))`), applied before the everyone/following and date/zone filters
 - **User search** (`UserSearchBox`, via `useUserSearch`): debounced (300ms) `ilike` search on `profiles.username`, limit 20, excludes the current user; shows an explicit "no users found" empty state; each result row has a clickable `@username` (opens profile) and a follow/unfollow button
 - **Cursor-based pagination**: loads 20 entries at a time using `.lt('created_at', cursor)`. A "load more" button appears at the bottom of the everyone feed when more entries exist (and no date/zone filter is active — pagination is page-local, see §9). Profile lookups are batched per page (only new user IDs fetched, accumulated across pages via `useRef`).
-- **Similar vibers**: computes 7-dimensional zone distribution vector per user; ranks all other users by Euclidean distance; shows top 5 with a % match score, a clickable `@username` (opens profile), and a follow/unfollow button per row. Requires ≥5 public entries from current user and ≥3 from candidates to appear.
+- **Similar vibers**: a collapsible section that computes a 7-dimensional zone distribution vector per user; ranks all other users by Euclidean distance; shows top 5 with a % match score, a clickable `@username` (opens profile), and a follow/unfollow button per row. Requires ≥5 public entries from current user and ≥3 from candidates to appear.
 
 ### Profile Views (`src/components/UserProfileModal.tsx` + `src/hooks/useUserProfile.ts`)
 - Opened by clicking any `@username` across the app (timeline cards, similar vibers, search results, settings lists)
@@ -459,7 +459,7 @@ The app has been adapted to a native Android application using [Capacitor](https
 - **Offline Caching:** If the device is offline, pending vibes are stored locally in the `vibelogger_offline_queue` via `@capacitor/preferences`. These cached entries are flushed and synced to Supabase when the app detects a connection again.
 - **Haptic Feedback:** The Android version utilizes `@capacitor/haptics` to trigger tactile vibration feedback during grid interactions.
 - **Grid / Record toggle:** The `log` view has a segmented pill (`grid` | `record`) in the header that switches between the mood grid and the entries list — replacing the side-by-side layout used on desktop, which doesn't work well on a phone's narrow screen.
-- **`VibeActionModal`** (`src/components/VibeActionModal.tsx`): tapping a row in the record view opens a full-screen modal (zone label, dot color, note, timestamp) with share, edit-note, and delete actions — replacing the inline row-action buttons from the desktop `MoodTable`, which are too small to tap reliably on mobile.
+- **`VibeActionModal`** (`src/components/VibeActionModal.tsx`): On mobile, tapping a row in the record view opens a full-screen modal (zone label, dot color, note, timestamp) with share, edit-note, and delete actions. This modal is now shared with the web app, where it is triggered by an ellipsis (`•••`) button on the row.
 - **Streak badge:** Shared with the web app — see §5. Both codebases use the same `useStreaks` hook and `.user-block` stacked layout.
 - **Project Structure:** Code changes for React components must be synced into the Android project explicitly, and live-updates are not supported in the built APK; manual re-compilation and installation is necessary.
 
