@@ -41,7 +41,8 @@ describe('undo delete', () => {
   it('hides the row and shows an undo toast when × is clicked', () => {
     render(<MoodTable vibes={[makeVibe('a')]} onDelete={onDelete} onUpdate={onUpdate} />)
 
-    fireEvent.click(screen.getByTitle('delete'))
+    fireEvent.click(screen.getByTitle('More actions'))
+    fireEvent.click(screen.getByText('Delete'))
 
     // The table disappears entirely when all vibes are pending delete
     expect(screen.queryAllByRole('row')).toHaveLength(0)
@@ -52,7 +53,8 @@ describe('undo delete', () => {
   it('restores the row when undo is clicked', async () => {
     render(<MoodTable vibes={[makeVibe('a')]} onDelete={onDelete} onUpdate={onUpdate} />)
 
-    fireEvent.click(screen.getByTitle('delete'))
+    fireEvent.click(screen.getByTitle('More actions'))
+    fireEvent.click(screen.getByText('Delete'))
     // Confirm row is hidden
     expect(screen.queryAllByRole('row')).toHaveLength(0)
 
@@ -69,7 +71,8 @@ describe('undo delete', () => {
   it('calls onDelete after 5 seconds when undo is not clicked', async () => {
     render(<MoodTable vibes={[makeVibe('a')]} onDelete={onDelete} onUpdate={onUpdate} />)
 
-    fireEvent.click(screen.getByTitle('delete'))
+    fireEvent.click(screen.getByTitle('More actions'))
+    fireEvent.click(screen.getByText('Delete'))
     expect(onDelete).not.toHaveBeenCalled()
 
     await act(async () => {
@@ -82,7 +85,8 @@ describe('undo delete', () => {
   it('does NOT call onDelete when undo is clicked before the timer fires', async () => {
     render(<MoodTable vibes={[makeVibe('a')]} onDelete={onDelete} onUpdate={onUpdate} />)
 
-    fireEvent.click(screen.getByTitle('delete'))
+    fireEvent.click(screen.getByTitle('More actions'))
+    fireEvent.click(screen.getByText('Delete'))
     fireEvent.click(screen.getByText(/undo/i))
 
     await act(async () => {
@@ -95,9 +99,11 @@ describe('undo delete', () => {
   it('handles two simultaneous pending deletes, each with its own toast', () => {
     render(<MoodTable vibes={[makeVibe('a'), makeVibe('b')]} onDelete={onDelete} onUpdate={onUpdate} />)
 
-    const delBtns = screen.getAllByTitle('delete')
-    fireEvent.click(delBtns[0])
-    fireEvent.click(delBtns[1])
+    const actionBtns = screen.getAllByTitle('More actions')
+    fireEvent.click(actionBtns[0])
+    fireEvent.click(screen.getByText('Delete'))
+    fireEvent.click(actionBtns[1])
+    fireEvent.click(screen.getByText('Delete'))
 
     // Both rows hidden
     expect(screen.queryAllByRole('row')).toHaveLength(0)
@@ -108,9 +114,11 @@ describe('undo delete', () => {
   it('undo on one of two pending deletes restores only that row', async () => {
     render(<MoodTable vibes={[makeVibe('a'), makeVibe('b')]} onDelete={onDelete} onUpdate={onUpdate} />)
 
-    const delBtns = screen.getAllByTitle('delete')
-    fireEvent.click(delBtns[0])
-    fireEvent.click(delBtns[1])
+    const actionBtns = screen.getAllByTitle('More actions')
+    fireEvent.click(actionBtns[0])
+    fireEvent.click(screen.getByText('Delete'))
+    fireEvent.click(actionBtns[1])
+    fireEvent.click(screen.getByText('Delete'))
 
     // Undo the first toast
     fireEvent.click(screen.getAllByText(/undo/i)[0])
