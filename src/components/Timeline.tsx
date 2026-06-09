@@ -233,7 +233,7 @@ export default function Timeline({ session, followingIds, blockedIds, follow, un
       />
 
       <div className="timeline-header-row">
-        <div className="timeline-section-title" style={{ margin: 0, fontSize: '18px', fontStyle: 'italic' }}>timeline</div>
+        <div className="timeline-section-title" style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>timeline</div>
         <div className="timeline-filter">
           <button
             className={`timeline-filter-btn ${filter === 'everyone' ? 'timeline-filter-btn--active' : ''}`}
